@@ -11324,3 +11324,65 @@ span.sticky-post {
 {
   margin-top:1.5rem;
 }
+
+/* Custom styles for newsletter subscription form */
+.newsletter-subscription-form {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.newsletter-subscription-form .form-group {
+  margin-bottom: 20px;
+}
+
+.newsletter-subscription-form .form-controller
+{
+  display: inline-block;
+}
+.newsletter-subscription-form input[type="email"],
+.newsletter-subscription-form input[type="tel"] {
+
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.newsletter-subscription-form button[type="submit"] {
+
+  display: inline-block;
+  vertical-align: top; /* Adjust vertical alignment as needed */
+  margin-left: 10px; /* Add space between the field and the button */
+}
+
+/* Success message */
+#subscribe-success {
+  display: none;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #28a745;
+  border-radius: 5px;
+  background-color: #d4edda;
+  color: #28a745;
+}
+
+
+.alert-success {
+  color: #155724;
+  background-color: #ffffff;
+  border-color: #fefffe;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+}
+
+
+.alert-error {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+}
