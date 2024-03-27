@@ -31,7 +31,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php do_action('luxsa/action/after_outer_wrap'); ?>
 
 <div class="la-overlay-global"></div>
+<script>
+    document.getElementById("newsletter-subscription-form").addEventListener("submit", function(event) {
+        var mobileField = document.getElementById("mobile");
+        var mobileError = document.getElementById("mobile-error");
 
+        if (!mobileField.checkValidity()) {
+            mobileError.style.display = "inline";
+            event.preventDefault(); // Prevent form submission
+        } else {
+            mobileError.style.display = "none";
+        }
+    });
+</script>
 <?php wp_footer(); ?>
 </body>
 </html>
