@@ -11301,3 +11301,26 @@ span.sticky-post {
 #customer_login {
   width: auto !important;
 }
+
+/* .section-page-header .page-title {
+  color: #000000 !important;
+}
+
+.section-page-header .breadcrumb-sep, .section-page-header a{
+  color: #000000 !important;
+}
+
+.section-page-header {
+  color: #000000 !important;
+} */
+
+.term-condition ol li
+{
+	line-height:2.75rem;
+	margin-bottom:2rem;
+}
+
+.refund-para
+{
+  margin-top:1.5rem;
+}

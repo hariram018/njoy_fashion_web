@@ -402,12 +402,13 @@ if(!class_exists('Luxsa_WooCommerce_Config')){
             $shop_catalog_size = apply_filters( 'single_product_archive_thumbnail_size', 'shop_catalog' );
 
             $output = '<div class="figure__object_fit p_img-first">'.woocommerce_get_product_thumbnail( $shop_catalog_size ).'</div>';
-
+            // $output = '<div></div>';
             if($with_second_image){
                 $gallery_image_ids = $product->get_gallery_image_ids();
                 if(!empty($gallery_image_ids[0])){
                     $image_url = wp_get_attachment_image_url($gallery_image_ids[0], $shop_catalog_size);
-                    $output .= '<div class="figure__object_fit p_img-second">'. sprintf('<div class="la-lazyload-image" data-background-image="%s"></div>', esc_url( $image_url )) .'</div>';
+                    // $output .= '<div class="figure__object_fit p_img-second">'. sprintf('<div class="la-lazyload-image" data-background-image="%s"></div>', esc_url( $image_url )) .'</div>';
+                    $output .= '<div></div>';
                 }
             }
             echo luxsa_render_variable( $output );

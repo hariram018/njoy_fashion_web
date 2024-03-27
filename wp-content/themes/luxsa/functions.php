@@ -954,4 +954,248 @@ function add_custom_meta_box() {
 	}
       }
       add_action('save_post', 'save_banner_image_meta_data');
+
+      /**
+ * Custom currency and currency symbol
+ */
+add_filter( 'woocommerce_currencies', 'add_my_currency' );
+
+function add_my_currency( $currencies ) {
+     $currencies['Lanka'] = __( 'LKR', 'woocommerce' );
+     return $currencies;
+}
+
+add_filter('woocommerce_currency_symbol', 'add_my_currency_symbol', 10, 2);
+
+function add_my_currency_symbol( $currency_symbol, $currency ) {
+     switch( $currency ) {
+          case 'Lanka': $currency_symbol = 'LKR '; break;
+     }
+     return $currency_symbol;
+}
       
+
+function custom_get_new_order_details($order_id) {
+	// Get the order object
+	$order = wc_get_order($order_id);
+      
+	// Get order details
+	$order_number = $order->get_order_number();
+	$order_status = $order->get_status();
+	$order_total = $order->get_total();
+      
+	// Get customer details
+	$customer_id = $order->get_customer_id();
+	$customer = $order->get_user();
+	$customer_name = $customer ? $customer->display_name : 'Guest';
+      
+	// Get billing details
+	$billing_address = $order->get_formatted_billing_address();
+	$billing_email = $order->get_billing_email();
+	$billing_phone = $order->get_billing_phone();
+      
+	// Get shipping details
+	$shipping_address = $order->get_formatted_shipping_address();
+	$shipping_method = $order->get_shipping_method();
+	
+	// Additional order details if needed
+	$payment_method_title = $order->get_payment_method_title();
+	$currency = $order->get_currency();
+      
+	// Format the order details
+	$order_details = "<strong>New Order Received:</strong><br>";
+	$order_details .= "Order Number: $order_number<br>";
+	$order_details .= "Status: $order_status<br>";
+	$order_details .= "Total: $order_total<br>";
+	$order_details .= "Customer ID: $customer_id<br>";
+	$order_details .= "Customer Name: $customer_name<br>";
+	$order_details .= "Billing Address: $billing_address<br>";
+	$order_details .= "Billing Email: $billing_email<br>";
+	$order_details .= "Billing Phone: $billing_phone<br>";
+	$order_details .= "Shipping Address: $shipping_address<br>";
+	$order_details .= "Shipping Method: $shipping_method<br>";
+	$order_details .= "Payment Method: $payment_method_title<br>";
+	$order_details .= "Currency: $currency<br>";
+      
+	// Return the formatted order details
+	return $order_details;
+      }
+      
+
+
+// Register shortcode to display order details
+add_shortcode('display_new_order_details', 'custom_display_new_order_details');
+
+function custom_display_new_order_details() {
+    // Call the function to retrieve order details
+    $order_details = custom_get_new_order_details();
+
+    // Output the order details
+    echo '<div class="new-order-details">' . $order_details . '</div>';
+}
+
+// Custom login form
+function custom_login_form() {
+	?>
+	<form id="login-form" action="<?php echo esc_url( wp_login_url() ); ?>" method="post">
+	    <div class="form-group">
+	        <label for="username">Username or Email</label>
+	        <input type="text" class="form-control" id="username" name="log" required>
+	    </div>
+	    <div class="form-group">
+	        <label for="password">Password</label>
+	        <input type="password" class="form-control" id="password" name="pwd" required>
+	    </div>
+	    <button type="submit" class="btn btn-primary">Login</button>
+	    <input type="hidden" name="redirect_to" value="<?php echo esc_url( home_url() ); ?>">
+	</form>
+	<?php
+      }
+      
+      // Custom registration form
+      function custom_registration_form() {
+	?>
+	<form id="registration-form" action="<?php echo esc_url( wp_registration_url() ); ?>" method="post">
+	    <div class="form-group">
+	        <label for="username">Username</label>
+	        <input type="text" class="form-control" id="username" name="username" required>
+	    </div>
+	    <div class="form-group">
+	        <label for="email">Email</label>
+	        <input type="email" class="form-control" id="email" name="email" required>
+	    </div>
+	    <div class="form-group">
+	        <label for="password">Password</label>
+	        <input type="password" class="form-control" id="password" name="password" required>
+	    </div>
+	    <button type="submit" class="btn btn-primary">Register</button>
+	</form>
+	<?php
+      }
+      
+      // Custom registration logic
+      function custom_user_registration() {
+	if ( isset( $_POST['username'] ) && isset( $_POST['email'] ) && isset( $_POST['password'] ) ) {
+	    $username = sanitize_user( $_POST['username'] );
+	    $email = sanitize_email( $_POST['email'] );
+	    $password = $_POST['password'];
+      
+	    $user_id = wp_create_user( $username, $password, $email );
+      
+	    if ( ! is_wp_error( $user_id ) ) {
+	        // Registration successful, you can perform further actions here
+	        // For example, you can log the user in automatically
+	        $credentials = array(
+		  'user_login'    => $username,
+		  'user_password' => $password,
+		  'remember'      => true,
+	        );
+      
+	        $user = wp_signon( $credentials, false );
+      
+	        if ( ! is_wp_error( $user ) ) {
+		  // Redirect the user after successful login
+		  wp_redirect( home_url() );
+		  exit;
+	        }
+	    }
+	}
+      }
+      
+      // Hook custom registration logic to user_register action
+      add_action( 'user_register', 'custom_user_registration' );
+      
+      // Customize authentication to allow login via email or username
+      function custom_allow_email_login( $user, $username, $password ) {
+	if ( ! $user && is_email( $username ) ) {
+	    $user = get_user_by( 'email', $username );
+	    if ( $user ) {
+	        $username = $user->user_login;
+	    }
+	}
+	return wp_authenticate_username_password( null, $username, $password );
+      }
+      
+      add_filter( 'authenticate', 'custom_allow_email_login', 20, 3 );
+
+function add_custom_admin_tab( $items ) {
+		if ( current_user_can( 'administrator' ) ) {
+			$dashboard_key = array_search( 'dashboard', array_keys( $items ) );
+			$new_items = array_slice( $items, 0, $dashboard_key + 1, true ) +
+						 array( 'registered-user' => __( 'Users', 'text-domain' ) ) +
+						 array_slice( $items, $dashboard_key + 1, null, true );
+			return $new_items;
+		}
+		return $items;
+	}
+	add_filter( 'woocommerce_account_menu_items', 'add_custom_admin_tab' );
+
+
+function custom_account_endpoint() {
+    add_rewrite_endpoint( 'registered-user', EP_PAGES );
+}
+add_action( 'woocommerce_init', 'custom_account_endpoint' );
+
+
+function custom_endpoint_redirect() {
+    global $wp;
+
+    if ( isset( $wp->query_vars['registered-user'] ) ) {
+        $template = locate_template( 'woocommerce/myaccount/registered-user.php' );
+
+        if ( $template ) {
+            include( $template );
+            exit;
+        }
+		else {
+            wp_redirect( home_url() );
+            exit;
+        }
+    }
+}
+add_action( 'template_redirect', 'custom_endpoint_redirect' );
+
+function add_custom_admin_tab_order( $items ) {
+    if ( current_user_can( 'administrator' ) ) {
+
+		$dashboard_key = array_search( 'dashboard', array_keys( $items ) );
+		$new_order_count = count( get_user_meta( get_current_user_id(), 'new_order_ids', true ) );
+			$new_items = array_slice( $items, 0, $dashboard_key + 3, true ) +
+						 array( 'new_orders' =>sprintf( __( 'New Orders (%d)', 'text-domain' ), $new_order_count ?? 0 )) +
+						 array_slice( $items, $dashboard_key + 3, null, true );
+			return $new_items;
+    }
+    return $items;
+}
+add_filter( 'woocommerce_account_menu_items', 'add_custom_admin_tab_order', 10 );
+
+function custom_account_endpoint_order() {
+    add_rewrite_endpoint( 'new_orders', EP_PAGES );
+}
+add_action( 'woocommerce_init', 'custom_account_endpoint_order' );
+
+function custom_endpoint_order_redirect() {
+    global $wp;
+    if ( isset( $wp->query_vars['new_orders'] ) ) {
+        $template = locate_template( 'woocommerce/myaccount/order-received.php' );
+
+        if ( $template ) {
+            include( $template );
+            exit;
+        }
+		else {
+            wp_redirect( home_url() );
+            exit;
+        }
+    }
+}
+add_action( 'template_redirect', 'custom_endpoint_order_redirect' );
+
+// Update user meta with new order IDs
+function update_new_order_ids( $order_id ) {
+    $admin_id = get_users( array( 'role' => 'administrator' ) )[0]->ID; // Assuming there's only one admin
+    $new_order_ids = get_user_meta( $admin_id, 'new_order_ids', true ) ?: array();
+    $new_order_ids[] = $order_id;
+    update_user_meta( $admin_id, 'new_order_ids', $new_order_ids );
+}
+add_action( 'woocommerce_checkout_order_processed', 'update_new_order_ids' );

@@ -52,7 +52,7 @@ $title_tag = luxsa_get_option('page_title_bar_heading_tag', 'h1');
 
 if($show_breadcrumbs || $show_page_title) :
     ?>
-    <header id="section_page_header" class="section-page-header<?php if($enable_custom_text == 'yes' && !empty($custom_text)) { echo ' use-custom-text'; } ?>" <?php if($banner_image_url){ ?>style="position: relative; background-image: url('<?php echo esc_url($banner_image_url); ?>');"<?php } else {?>style="background-color:#2c4258;"<?php }?>>
+    <header id="section_page_header" class="section-page-header<?php if($enable_custom_text == 'yes' && !empty($custom_text)) { echo ' use-custom-text'; } ?>" >
         <div class="container">
         <div class="banner-overlay"></div> <!-- Add a black overlay -->
             <div class="page-header-inner">
