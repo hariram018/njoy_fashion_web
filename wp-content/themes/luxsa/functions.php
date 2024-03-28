@@ -1191,7 +1191,7 @@ function custom_endpoint_order_redirect() {
 }
 add_action( 'template_redirect', 'custom_endpoint_order_redirect' );
 
-// Update user meta with new order IDs
+
 function update_new_order_ids( $order_id ) {
     $admin_id = get_users( array( 'role' => 'administrator' ) )[0]->ID; // Assuming there's only one admin
     $new_order_ids = get_user_meta( $admin_id, 'new_order_ids', true ) ?: array();
@@ -1200,106 +1200,138 @@ function update_new_order_ids( $order_id ) {
 }
 add_action( 'woocommerce_checkout_order_processed', 'update_new_order_ids' );
 
+function enqueue_sweetalert() {
+    
+    wp_enqueue_style( 'sweetalert', 'https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.css' );
+    
+    
+    wp_enqueue_script( 'sweetalert', 'https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js', array(), '', true );
+}
+add_action( 'wp_enqueue_scripts', 'enqueue_sweetalert' );
 
-// Register shortcode for newsletter subscription form
+
 add_shortcode( 'newsletter_subscription_form', 'render_newsletter_subscription_form' );
 
-// Render newsletter subscription form shortcode
 function render_newsletter_subscription_form() {
-    // Initialize error message variable
-    $error_message = '';
-	$sucess_msg='';
-
-    // Check if there's an error message stored in the session
-    if ( isset( $_SESSION['newsletter_subscription_error'] ) ) {
-        $error_message = $_SESSION['newsletter_subscription_error'];
-        // Unset the session variable to clear the error message
-        unset( $_SESSION['newsletter_subscription_error'] );
-    }
-
-	if ( isset( $_SESSION['newsletter_subscription_success'] ) ) {
-        $sucess_msg = $_SESSION['newsletter_subscription_success'];
-        // Unset the session variable to clear the error message
-        unset( $_SESSION['newsletter_subscription_success'] );
-    }
-
     ob_start();
     ?>
     <div class="newsletter-subscription-form">
-
         <form id="newsletter-subscription-form" method="post" action="#newsletter-subscription-form">
-		<p class="alert-success"> <?php echo esc_html( $sucess_msg ); ?> </p>
             <div class="form-group">
                 <input type="tel" class="form-control" id="mobile" name="mobile" placeholder="Your Mobile Number" required>
-                <!-- Display error message if exists -->
-                <p class="alert-error"><?php echo esc_html( $error_message ); ?></p>
+                <p class="error-message" style="display: none;"></p>
             </div>
             <?php wp_nonce_field( 'subscribe_nonce', 'subscribe_nonce' ); ?>
             <button type="submit" class="btn btn-primary">Subscribe</button>
         </form>
-        <div id="subscribe-success" class="alert alert-success mt-3" style="display: none;">
-            Thank you for subscribing!
-        </div>
     </div>
+
+    <script>
+    jQuery(function($) {
+        $('#newsletter-subscription-form').submit(function(event) {
+            event.preventDefault(); 
+
+            var mobile = $('#mobile').val();
+
+            
+            if (mobile.length !== 10 || !/^\d+$/.test(mobile)) {
+                // $('.error-message').text('Please enter a valid 10-digit mobile number.').show();
+				Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: 'Please enter a valid 10-digit mobile number.'
+                        });
+                return;
+            }
+
+            
+            $.ajax({
+                type: 'POST',
+                url: '<?php echo esc_js(admin_url('admin-ajax.php')); ?>',
+                data: {
+                    action: 'process_newsletter_subscription',
+                    mobile: mobile,
+                    subscribe_nonce: '<?php echo esc_js(wp_create_nonce('subscribe_nonce')); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'You have subscribed successfully!'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                
+                                location.reload();
+                            }
+                        });
+                    } else {
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: response.data.message
+                        });
+                    }
+                }
+            });
+        });
+    });
+    </script>
     <?php
     return ob_get_clean();
 }
 add_shortcode( 'newsletter_subscription_form', 'render_newsletter_subscription_form' );
 
-// Process form submission
+
+add_action('wp_ajax_process_newsletter_subscription', 'process_newsletter_subscription');
+add_action('wp_ajax_nopriv_process_newsletter_subscription', 'process_newsletter_subscription');
+
 function process_newsletter_subscription() {
+    $response = array('success' => false, 'data' => array());
+
+    
+    if ( ! isset($_POST['subscribe_nonce']) || ! wp_verify_nonce($_POST['subscribe_nonce'], 'subscribe_nonce') ) {
+        $response['data']['message'] = 'Nonce verification failed.';
+        wp_send_json($response);
+    }
+
+    
+    $mobile = isset($_POST['mobile']) ? sanitize_text_field($_POST['mobile']) : '';
+    if (strlen($mobile) !== 10 || !ctype_digit($mobile)) {
+        $response['data']['message'] = 'Please enter a valid 10-digit mobile number.';
+        wp_send_json($response);
+    }
+
+   
     global $wpdb;
     $table_name = $wpdb->prefix . 'newsletter_subscriptions';
-
-    // Check if the table exists
-    if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) != $table_name ) {
-        // Table doesn't exist, create it
-        $charset_collate = $wpdb->get_charset_collate();
-
-        $sql = "CREATE TABLE {$table_name} (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            email varchar(100) NOT NULL,
-            mobile varchar(20) NOT NULL,
-            PRIMARY KEY  (id)
-        ) $charset_collate;";
-
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        dbDelta( $sql );
+    $existing_mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile FROM $table_name WHERE mobile = %s", $mobile));
+    if ($existing_mobile) {
+        $response['data']['message'] = 'This mobile number is already subscribed.';
+        wp_send_json($response);
     }
 
-    if ( isset( $_POST['subscribe_nonce'] ) && wp_verify_nonce( $_POST['subscribe_nonce'], 'subscribe_nonce' ) ) {
-        $mobile = sanitize_text_field( $_POST['mobile'] );
+   
+    $wpdb->insert($table_name, array('mobile' => $mobile));
 
-        if ( strlen( $mobile ) !== 10 || ! ctype_digit( $mobile ) ) {
-            // Invalid mobile number format
-            $_SESSION['newsletter_subscription_error'] = 'Please enter a valid 10-digit mobile number.';
-            
-        }
+    
+    $response['success'] = true;
+    wp_send_json($response);
+}
 
-        $existing_mobile = $wpdb->get_var( $wpdb->prepare( "SELECT mobile FROM $table_name WHERE mobile = %s", $mobile ) );
+add_filter('woocommerce_process_registration_errors','custom_validate_billing_phone',10, 4 );
+add_action('woocommerce_after_save_address_validation','custom_validate_billing_phone',1,2);
+add_action('woocommerce_checkout_process', 'custom_validate_billing_phone');
 
-        if ( $existing_mobile ) {
-            // Mobile number already subscribed
-            $_SESSION['newsletter_subscription_error'] = 'This mobile number is already subscribed.';
-           
-        }
-
-        // Store the data in the database
-        $wpdb->insert( 
-            $table_name, 
-            array( 
-                'mobile' => $mobile 
-            ) 
-        );
-		$_SESSION['newsletter_subscription_success'] = 'You have Subscribe Sucessfully';
-        // Display success message
-
-		wp_redirect( home_url() );
-            exit;
-        echo '<script>document.getElementById("subscribe-success").style.display = "block";</script>';
+function custom_validate_billing_phone() {
+    $is_correct = preg_match('/^[0-9]{10}$/', $_POST['billing_phone']);
+    
+    if ( $_POST['billing_phone'] && !$is_correct ) {
+        wc_add_notice( __( 'The Phone field should be <strong>start 05 and 10 digits</strong>.' ), 'error' );
     }
 }
-add_action( 'init', 'process_newsletter_subscription' );
 
 
 // Function to send SMS notification (replace placeholders with actual credentials and API call)

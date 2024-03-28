@@ -11386,3 +11386,8 @@ span.sticky-post {
   margin-bottom: 15px;
   border-radius: 5px;
 }
+
+.cart_btn_hide
+{
+  display: none !important;
+}

@@ -247,6 +247,7 @@ class WC_Form_Handler {
 		$account_first_name   = ! empty( $_POST['account_first_name'] ) ? wc_clean( wp_unslash( $_POST['account_first_name'] ) ) : '';
 		$account_last_name    = ! empty( $_POST['account_last_name'] ) ? wc_clean( wp_unslash( $_POST['account_last_name'] ) ) : '';
 		$account_display_name = ! empty( $_POST['account_display_name'] ) ? wc_clean( wp_unslash( $_POST['account_display_name'] ) ) : '';
+		$account_billing_phone = ! empty( $_POST['account_billing_phone'] ) ? wc_clean( wp_unslash( $_POST['account_billing_phone'] ) ) : '';
 		$account_email        = ! empty( $_POST['account_email'] ) ? wc_clean( wp_unslash( $_POST['account_email'] ) ) : '';
 		$pass_cur             = ! empty( $_POST['password_current'] ) ? $_POST['password_current'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 		$pass1                = ! empty( $_POST['password_1'] ) ? $_POST['password_1'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
@@ -258,6 +259,7 @@ class WC_Form_Handler {
 		$current_first_name = $current_user->first_name;
 		$current_last_name  = $current_user->last_name;
 		$current_email      = $current_user->user_email;
+		$current_billing_phone = $current_user->billing_phone;
 
 		// New user data.
 		$user               = new stdClass();
@@ -265,6 +267,7 @@ class WC_Form_Handler {
 		$user->first_name   = $account_first_name;
 		$user->last_name    = $account_last_name;
 		$user->display_name = $account_display_name;
+		$user->billing_phone = $account_billing_phone;
 
 		// Prevent display name to be changed to email.
 		if ( is_email( $account_display_name ) ) {
@@ -279,6 +282,7 @@ class WC_Form_Handler {
 				'account_last_name'    => __( 'Last name', 'woocommerce' ),
 				'account_display_name' => __( 'Display name', 'woocommerce' ),
 				'account_email'        => __( 'Email address', 'woocommerce' ),
+				'account_billing_phone' => __( 'Billing phone', 'woocommerce' ),
 			)
 		);
 
@@ -297,6 +301,25 @@ class WC_Form_Handler {
 				wc_add_notice( __( 'This email address is already registered.', 'woocommerce' ), 'error' );
 			}
 			$user->user_email = $account_email;
+		}
+
+		if ( $account_billing_phone ) {
+			$account_billing_phone = sanitize_text_field( $account_billing_phone );
+			// Validate billing phone
+			$is_correct = preg_match('/^[0-9]{10}$/', $account_billing_phone);
+    
+    			if ( $account_billing_phone && !$is_correct ) {
+        			wc_add_notice( __( 'The Phone field should be <strong> 10 digits </strong>.' ), 'error' );
+    				}
+
+					if (!empty($account_billing_phone) && get_user_meta($user_id, 'billing_phone', true) !== $account_billing_phone) {
+						$existing_user_id = username_exists($account_billing_phone);
+						if ($existing_user_id && $existing_user_id !== $user_id) {
+							wc_add_notice( __( 'The Phone Number is  <strong> All Ready Used </strong> please Enter Alternative Number.' ), 'error' );
+						}
+					}
+				
+			$user->billing_phone = $account_billing_phone;
 		}
 
 		if ( ! empty( $pass_cur ) && empty( $pass1 ) && empty( $pass2 ) ) {
@@ -349,7 +372,9 @@ class WC_Form_Handler {
 				if ( $current_last_name !== $user->last_name ) {
 					$customer->set_billing_last_name( $user->last_name );
 				}
-
+				if ( $current_billing_phone !== $user->billing_phone ) {
+					$customer->set_billing_phone( $user->billing_phone );
+				}
 				$customer->save();
 			}
 
